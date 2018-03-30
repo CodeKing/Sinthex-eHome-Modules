@@ -117,6 +117,10 @@ class WolfSmartset extends IPSModule
 
     private function GetJsonData($url, $requesttype, $header, $postdata = null, $posttype = "query", $keepalive = false, $reauth = false)
     {
+        if(!$header) {
+            $header = [];
+        }
+
         $curl = curl_init($url);
         if ($keepalive) {
             array_push($header, 'Content-Length: 2');
@@ -132,13 +136,24 @@ class WolfSmartset extends IPSModule
                 curl_setopt($curl, CURLOPT_POSTFIELDS, $postdata);
             }
         }
+
+        if(!$header) {
+            $header = [];
+        }
+
         curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $requesttype);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 5);
         curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36');
         $page = curl_exec($curl);
+
+        if(!$page) {
+            exit;
+        }
+
         $data = json_decode($page);
         $this->LogDebug("REQUEST URL", $url);
         $this->LogDebug("SEND_DATA_HEADER", join("; ", $header));
@@ -164,7 +179,6 @@ class WolfSmartset extends IPSModule
         $connectionNode = $this->GetIDForIdent('SystemName');
         $tokenId = IPS_GetObjectIDByIdent('Token', $connectionNode);
         $auth_header = GetValueString($tokenId);
-        $auth_header = "";
 
         if ($auth_header <> "") {
             $response = json_decode($this->GetJsonData($this->wolf_url . 'api/portal/UpdateSession', "POST", json_decode($auth_header), null, "query", true));
@@ -214,8 +228,11 @@ class WolfSmartset extends IPSModule
 
     public function GetSystemInfo($reauth = false)
     {
-        //Struktur erstellen
+        if(!$this->ReadPropertyString("Username")) {
+            return false;
+        }
 
+        //Struktur erstellen
         $auth_header = $this->Authorize();
         // Get all systems
         $system_data = $this->GetJsonData($this->wolf_url . 'api/portal/GetSystemList?_=' . time(), "GET", $auth_header, null, 'query', false, $reauth);
@@ -427,6 +444,9 @@ class WolfSmartset extends IPSModule
         $systemShareId = GetValueString(IPS_GetObjectIDByIdent('SystemShareId', $connectionNode));
         $lastAccess = GetValueString(IPS_GetObjectIDByIdent('LastAccess', $connectionNode));
 
+        if(!$auth_header) {
+            $auth_header = [];
+        }
 
         //array_push($auth_header,'Content-Type: application/json; charset=UTF-8');
         array_push($auth_header, 'X-Requested-With: XMLHttpRequest');
@@ -483,11 +503,11 @@ class WolfSmartset extends IPSModule
     {
         $auth_header = $this->Authorize();
         $connectionNode = $this->GetIDForIdent('SystemName');
-        $system = GetValueString(IPS_GetObjectIDByIdent('SystemId', $connectionNode));
+        $system = @GetValueString(IPS_GetObjectIDByIdent('SystemId', $connectionNode));
         $system = new stdClass();
-        $system->SystemId = GetValueString(IPS_GetObjectIDByIdent('SystemId', $connectionNode));
-        $system->GatewayId = GetValueString(IPS_GetObjectIDByIdent('GatewayId', $connectionNode));
-        $system->SystemShareId = GetValueString(IPS_GetObjectIDByIdent('SystemShareId', $connectionNode));
+        $system->SystemId = @GetValueString(IPS_GetObjectIDByIdent('SystemId', $connectionNode));
+        $system->GatewayId = @GetValueString(IPS_GetObjectIDByIdent('GatewayId', $connectionNode));
+        $system->SystemShareId = @GetValueString(IPS_GetObjectIDByIdent('SystemShareId', $connectionNode));
         $system_state_list = $this->GetJsonData($this->wolf_url . 'api/portal/GetSystemStateList', "POST", $auth_header, array('SystemList' => array($system)), "json");
         SetValueString($this->GetIDForIdent('NetworkStatus'), ($system_state_list[0]->GatewayState->IsOnline == 1 ? 'Online' : 'Offline'));
 

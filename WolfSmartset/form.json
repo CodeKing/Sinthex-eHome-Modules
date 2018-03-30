@@ -12,7 +12,7 @@
     ],
     "actions":
     [
-        { "type": "Button", "label": "Update environment", "onClick": "WSS_GetSystemInfo($id);"},
+        { "type": "Button", "label": "Update environment", "onClick": "WSS_GetSystemInfo($id, false);"},
         { "type": "Button", "label": "Receive values", "onClick": "WSS_GetValues($id);"}
     ],
     "status":
