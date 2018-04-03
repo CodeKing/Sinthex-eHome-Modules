@@ -151,15 +151,10 @@ class WolfSmartset extends IPSModule
         $page = curl_exec($curl);
 
         if(!$page) {
-            exit;
+            return false;
         }
 
         $data = json_decode($page);
-        $this->LogDebug("REQUEST URL", $url);
-        $this->LogDebug("SEND_DATA_HEADER", join("; ", $header));
-        $this->LogDebug("RECEIVED_DATA", $page);
-        $this->LogDebug("RECEIVED_CODE", curl_getinfo($curl, CURLINFO_HTTP_CODE));
-
 
         if (curl_getinfo($curl, CURLINFO_HTTP_CODE) == "400") {
             if(!$reauth) {
@@ -234,6 +229,7 @@ class WolfSmartset extends IPSModule
 
         //Struktur erstellen
         $auth_header = $this->Authorize();
+
         // Get all systems
         $system_data = $this->GetJsonData($this->wolf_url . 'api/portal/GetSystemList?_=' . time(), "GET", $auth_header, null, 'query', false, $reauth);
 
